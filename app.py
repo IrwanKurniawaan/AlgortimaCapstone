@@ -1,28 +1,59 @@
-from flask import Flask, request, sqlite3
+from flask import Flask, request
+import sqlite3
 import pandas as pd
 
 app = Flask(__name__) 
 
-
+#PROJECT CAPSTONE
 @app.route('/data/')
 def data():
-    df = pd.read_csv('D:/_Training Algoritma/_Capstone/p4da-capstone-api-master/data/books_c.csv')
+    df = pd.read_csv('/data/books_c.csv')
     return (df.to_json())
+
 
 #GetCsvFileData
 @app.route('/data/get/datacsv/<csvfile>', methods=['GET']) 
 def getcsvfile(csvfile): 
-    data = pd.read_csv('D:/_Training Algoritma/_Capstone/p4da-capstone-api-master/data/' + str(csvfile))
-    return (data.to_json())
+ 	data = pd.read_csv('/data/' + str(csvfile))
+ 	return (data.to_json())
 
-#bookinfo
-@app.route('/data/get/books/<column>/<value>', methods=['GET']) 
-def get_data_equal(column, value): 
-   data = pd.read_csv('D:/_Training Algoritma/_Capstone/p4da-capstone-api-master/data/books_c.csv')
-   mask = data[column] == value
-   data = data[mask]
-   return (data.to_json())
 
+#salesriceYearly
+@app.route('/data/get/salesrice/<salesyears>', methods=['GET']) 
+def salesrice(salesyears): 
+ 	datacsv = pd.read_csv("/data/rice.csv",index_col=0,parse_dates=['purchase_time'])
+	datacsv['PurchaseDOW'] = datacsv['purchase_time'].dt.day_name() 
+	datacsv['PurchaseYear'] = datacsv['purchase_time'].dt.year
+	#categorical operation
+	datacsv[['category','sub_category','format','yearmonth','PurchaseDOW']] = datacsv[['category','sub_category','format','yearmonth','PurchaseDOW']].astype('category') 
+	datacsv['unit_price'] = datacsv['unit_price'].astype('int64')
+	datacsv['sales_value'] = datacsv['unit_price'] * datacsv['quantity']
+	datacsv.drop(['receipt_id', 'receipts_item_id', 'sub_category','purchase_time','discount'], axis=1, inplace=True)
+	#melt,groupby, frequency operation
+	datacsv[datacsv['PurchaseYear'] == salesyears].\
+	pivot_table(
+	    index='yearmonth',
+	    columns=['format'],
+	    values='unit_price',
+	    aggfunc='sum'
+	).melt().groupby(['format']).sum()
+
+	return (datacsv.to_json())
+
+#2. Dynamic
+@app.route('/data/get/chinook/')
+def genre():
+   pass 
+  #df = pd.read_csv('/data/books_c.csv')
+ #return (df.to_json())
+
+
+
+#Document
+
+
+
+# LATIHAN CAPSTONE
 @app.route('/form', methods=['GET', 'POST']) #allow both GET and POST requests
 def form():
     if request.method == 'POST':  # Hanya akan tampil setelah melakukan POST (submit) form
@@ -41,6 +72,7 @@ def form():
                   Age: <input type="text" name="age"><br>
                   <input type="submit" value="Submit"><br>
               </form>'''
+
 
 @app.route('/sebut_nama/<nama>', methods=['GET']) 
 def sebut_nama(nama):
