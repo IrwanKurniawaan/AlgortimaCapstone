@@ -17,8 +17,45 @@ def getcsvfile(csvfile):
  	data = pd.read_csv('/data/' + str(csvfile))
  	return (data.to_json())
 
+#Getfrom chinook
+#Join 4 tables
+@app.route('/data/get/chinook/topgenres') 
+def topgenres():
+ 	conn = sqlite3.connect("data/chinook.db")
+ 	key1 = 'country'
+	key2 = 'year'
+	where = ''
+	country = request.args.get(key2)
+	sql = '''
+		SELECT
+			BillingCountry as Country, d.Name as Genre, strftime('%Y', a.invoicedate) Year
+			FROM invoices a
+			LEFT JOIN invoice_items b on a.InvoiceId = b.InvoiceId
+			LEFT JOIN tracks c ON b.TrackId = c.TrackId
+			LEFT JOIN genres d ON c.GenreId = d.GenreId
+		'''
+
+	if (country and year):
+		where = " WHERE lower(Country) like '%" +country.lower()+"%' and Year='"+year+"'"
+	elif (country):
+		where = " WHERE lower(Country) like '%" +country.lower()+"%'"
+	elif (year):
+		where = " WHERE Year='"+year+"'"
+	else:
+		where = ''
+
+	sql = sql + where
+	topgenres = pd.read_sql_query(sql,conn)
+
+	if(topgenres['Country'].notna().sum() > 0):
+		return(topgenres.to_json())
+	
+	return 'Data Not Exists!!'
+
 
 #salesriceYearly
+#masih error, syhtax di jupyters jalan, tapi di comple python tidak jalan
+#TabError: inconsistent use of tabs and spaces in indentation
 @app.route('/data/get/salesrice/<salesyears>', methods=['GET']) 
 def salesrice(salesyears): 
  	datacsv = pd.read_csv("/data/rice.csv",index_col=0,parse_dates=['purchase_time'])
